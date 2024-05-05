@@ -15,7 +15,25 @@
 #include <osg/PositionAttitudeTransform>
 #include <osg/Node>
 #include <osg/ShapeDrawable>
+#include <osg/Texture2D>
 #include <osgViewer/Viewer>
+#include <osgDB/ReadFile>
+
+// Función para cargar una textura desde un archivo de imagen
+osg::ref_ptr<osg::Texture2D> LoadTexture(const std::string& filename)
+{
+    osg::ref_ptr<osg::Image> image = osgDB::readImageFile(filename);
+    if (!image)
+    {
+        std::cerr << "Error cargando la imagen: " << filename << std::endl;
+        return nullptr;
+    }
+
+    osg::ref_ptr<osg::Texture2D> texture = new osg::Texture2D;
+    texture->setImage(image);
+
+    return texture;
+}
 
 // Función callback que aplica la rotación al cubo PAT
 class CubeSpinningUpdateCallback : public osg::NodeCallback
@@ -63,7 +81,7 @@ private:
 };
 
 // Función para generar los cubos que rotan y que se añadiran al grupo de la escena
-osg::ref_ptr<osg::PositionAttitudeTransform> CreateSpinningCubeNode(const osg::Vec3 &position, const osg::Vec4 &color, double startTime)
+osg::ref_ptr<osg::PositionAttitudeTransform> CreateSpinningCubeNode(const osg::Vec3 &position, const osg::Vec4 &color, const std::string& textureFile, double startTime)
 {
     // Creamos una geometría de cubo
     osg::ref_ptr<osg::Box> box = new osg::Box(osg::Vec3(0, 0, 0), 1.0f);
@@ -82,6 +100,18 @@ osg::ref_ptr<osg::PositionAttitudeTransform> CreateSpinningCubeNode(const osg::V
     // Establecemos los colores en el shape drawable y lo aplicamos sobre todo el cubo
     shapeDrawable->setColorArray(colors);
     shapeDrawable->setColorBinding(osg::Geometry::BIND_OVERALL);
+
+    // Cargar la textura
+    osg::ref_ptr<osg::Texture2D> texture = LoadTexture(textureFile);
+    if (!texture)
+    {
+        std::cerr << "Error cargando la textura desde el archivo: " << textureFile << std::endl;
+        return nullptr;
+    }
+
+    // Aplicar la textura al cubo
+    osg::ref_ptr<osg::StateSet> stateSet = geode->getOrCreateStateSet();
+    stateSet->setTextureAttributeAndModes(0, texture);
 
     // Creamos un PAT para aplicar las transformaciones
     osg::ref_ptr<osg::PositionAttitudeTransform> transform = new osg::PositionAttitudeTransform;
@@ -142,13 +172,15 @@ int main()
     // Creamos el primer cubo
     osg::ref_ptr<osg::PositionAttitudeTransform> transform = CreateSpinningCubeNode(
         osg::Vec3(-2.0f, 10.0f, 0.0f),     // Posicionado más a la izquierda
-        osg::Vec4(1.0f, 0.2f, 0.4f, 1.0f), // Color ~ rojo-magenta
+        osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f), // Color ~ rojo-magenta
+        "stone_texture.png",               // Textura - Piedra
         startTime);
 
     // Creamos el segundo cubo
     osg::ref_ptr<osg::PositionAttitudeTransform> transform2 = CreateSpinningCubeNode(
         osg::Vec3(2.0f, 15.0f, 0.0f),      // Posicionado más a la derecha
-        osg::Vec4(0.4f, 1.0f, 1.0f, 1.0f), // Color ~ azul-marino
+        osg::Vec4(1.0f, 1.0f, 1.0f, 1.0f), // Color ~ azul-marino
+        "wood_texture.png",                // Textura - Madera
         startTime + 1);                    // Valor extra para simular transformaciones desacompasada respecto al primer cubo
 
     // Añadimos los cubo al grupo
