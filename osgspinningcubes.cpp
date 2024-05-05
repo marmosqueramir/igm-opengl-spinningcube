@@ -21,19 +21,19 @@
 class CubeSpinningUpdateCallback : public osg::NodeCallback
 {
 public:
-    CubeSpinningUpdateCallback(const osg::Vec3& initialPosition, double startTime) 
+    CubeSpinningUpdateCallback(const osg::Vec3 &initialPosition, double startTime)
         : _initialPosition(initialPosition), _startTime(startTime) {}
 
-    virtual void operator()(osg::Node* node, osg::NodeVisitor* nv)
+    virtual void operator()(osg::Node *node, osg::NodeVisitor *nv)
     {
         if (nv->getVisitorType() == osg::NodeVisitor::UPDATE_VISITOR)
         {
             double currentTime = nv->getFrameStamp()->getReferenceTime() - _startTime;
 
-            osg::PositionAttitudeTransform* transform = dynamic_cast<osg::PositionAttitudeTransform*>(node);
+            osg::PositionAttitudeTransform *transform = dynamic_cast<osg::PositionAttitudeTransform *>(node);
             if (transform)
             {
-                 // Calculamos el ángulo de rotación actual
+                // Calculamos el ángulo de rotación actual
                 float angleY = 40.0f * currentTime;
                 float angleX = 81.0f * currentTime;
 
@@ -41,7 +41,6 @@ public:
                 osg::Quat rotationY = osg::Quat(osg::DegreesToRadians(angleY), osg::Vec3(0.0f, 1.0f, 0.0f));
                 osg::Quat rotationX = osg::Quat(osg::DegreesToRadians(angleX), osg::Vec3(1.0f, 0.0f, 0.0f));
                 osg::Quat totalRotation = rotationY * rotationX;
-
 
                 // Calculamos las coordenadas de traslación basadas en funciones trigonométricas
                 float x = sinf(2.1f * currentTime) * 0.5f;
@@ -64,14 +63,14 @@ private:
 };
 
 // Función para generar los cubos que rotan y que se añadiran al grupo de la escena
-osg::ref_ptr<osg::PositionAttitudeTransform> CreateSpinningCubeNode(const osg::Vec3& position, const osg::Vec4& color, double startTime)
+osg::ref_ptr<osg::PositionAttitudeTransform> CreateSpinningCubeNode(const osg::Vec3 &position, const osg::Vec4 &color, double startTime)
 {
     // Creamos una geometría de cubo
     osg::ref_ptr<osg::Box> box = new osg::Box(osg::Vec3(0, 0, 0), 1.0f);
 
     // Creamos un drawable con la geometría del cubo
     osg::ref_ptr<osg::ShapeDrawable> shapeDrawable = new osg::ShapeDrawable(box);
-    
+
     // Creamos un nodo geode y añadimos el drawable
     osg::ref_ptr<osg::Geode> geode = new osg::Geode();
     geode->addDrawable(shapeDrawable);
@@ -83,10 +82,10 @@ osg::ref_ptr<osg::PositionAttitudeTransform> CreateSpinningCubeNode(const osg::V
     // Establecemos los colores en el shape drawable y lo aplicamos sobre todo el cubo
     shapeDrawable->setColorArray(colors);
     shapeDrawable->setColorBinding(osg::Geometry::BIND_OVERALL);
-    
+
     // Creamos un PAT para aplicar las transformaciones
     osg::ref_ptr<osg::PositionAttitudeTransform> transform = new osg::PositionAttitudeTransform;
-    
+
     // Definimos y aplicamos la traslación inicial
     transform->setPosition(position);
 
@@ -97,6 +96,37 @@ osg::ref_ptr<osg::PositionAttitudeTransform> CreateSpinningCubeNode(const osg::V
     transform->setUpdateCallback(new CubeSpinningUpdateCallback(position, startTime));
 
     return transform;
+}
+
+// Función para generar el punto de luz adicional
+osg::ref_ptr<osg::PositionAttitudeTransform> CreateLightSource()
+{
+    // Creamos una esfera pequeña
+    osg::ref_ptr<osg::Sphere> lightSphere = new osg::Sphere(osg::Vec3(0, 0, 0), 0.1f);
+    osg::ref_ptr<osg::ShapeDrawable> lightShapeDrawable = new osg::ShapeDrawable(lightSphere);
+
+    // Establecer el color amarillo a la esfera
+    osg::ref_ptr<osg::Vec4Array> lightColors = new osg::Vec4Array;
+    lightColors->push_back(osg::Vec4(1.0f, 0.9f, 0.0f, 1.0f));
+    lightShapeDrawable->setColorArray(lightColors);
+    lightShapeDrawable->setColorBinding(osg::Geometry::BIND_OVERALL);
+
+    // Creamos un nodo geode y añadimos el drawable
+    osg::ref_ptr<osg::Geode> lightGeode = new osg::Geode();
+    lightGeode->addDrawable(lightShapeDrawable);
+
+    // Creamos una fuente de luz y se agrega a la esfera
+    osg::ref_ptr<osg::LightSource> lightSource(new osg::LightSource());
+    lightSource->getLight()->setLightNum(1);
+    lightSource->getLight()->setPosition(osg::Vec4(0.0, 0.0, 0.0, 1.0));
+    lightSource->getLight()->setDiffuse(osg::Vec4(1.0, 1.0, 0.0, 1.0));
+    lightGeode->addChild(lightSource);
+
+    // Creamos un PAT a la que se le añade el nodo geode
+    osg::ref_ptr<osg::PositionAttitudeTransform> lightPAT(new osg::PositionAttitudeTransform());
+    lightPAT->addChild(lightGeode);
+
+    return lightPAT;
 }
 
 int main()
@@ -111,23 +141,31 @@ int main()
 
     // Creamos el primer cubo
     osg::ref_ptr<osg::PositionAttitudeTransform> transform = CreateSpinningCubeNode(
-        osg::Vec3 (-2.0f, 10.0f, 0.0f), // Posicionado más a la izquierda
-        osg::Vec4 (1.0f, 0.2f, 0.4f, 1.0f), // Color ~ rojo-magenta
+        osg::Vec3(-2.0f, 10.0f, 0.0f),     // Posicionado más a la izquierda
+        osg::Vec4(1.0f, 0.2f, 0.4f, 1.0f), // Color ~ rojo-magenta
         startTime);
 
     // Creamos el segundo cubo
     osg::ref_ptr<osg::PositionAttitudeTransform> transform2 = CreateSpinningCubeNode(
-        osg::Vec3 (2.0f, 15.0f, 0.0f), // Posicionado más a la derecha
-        osg::Vec4 (0.4f, 1.0f, 1.0f, 1.0f), // Color ~ azul-marino 
-        startTime + 1); // Valor extra para simular transformaciones desacompasada respecto al primer cubo
-    
+        osg::Vec3(2.0f, 15.0f, 0.0f),      // Posicionado más a la derecha
+        osg::Vec4(0.4f, 1.0f, 1.0f, 1.0f), // Color ~ azul-marino
+        startTime + 1);                    // Valor extra para simular transformaciones desacompasada respecto al primer cubo
+
     // Añadimos los cubo al grupo
     group->addChild(transform);
     group->addChild(transform2);
+
+    // Creamos la nueva fuente de luz y la añadimos al grupo
+    osg::ref_ptr<osg::PositionAttitudeTransform> lightPAT = CreateLightSource();
+    lightPAT->setPosition(osg::Vec3(3.0, 12.0, 3.0));
+    group->addChild(lightPAT);
+
+    // Activamos la nueva fuente de luz
+    osg::ref_ptr<osg::StateSet> ss = group->getOrCreateStateSet();
+    ss->setMode(GL_LIGHT1, osg::StateAttribute::ON);
 
     // Añadimos el grupo a la escena
     viewer.setSceneData(group);
 
     return viewer.run();
-
 }
